@@ -36,6 +36,18 @@ function getCookie () {
 	read -s password
 	curl -kX POST https://10.82.6.165/api/aaaLogin.xml -d "<aaaUser name='${userName}' pwd='${password}'/>" -c cookie.txt	
 }
+
+function writeStatus (){	
+  echo ""
+  echo "##########################"
+  echo "#"
+  echo "# $1"
+  echo "#"
+  echo "##########################"
+
+
+}
+
 getCookie
 
 
@@ -55,21 +67,41 @@ breakoutPolicy="
 			</infraBrkoutPortGrp>
 "
 
-##########################
-#
-# Ensure a policy exists Breakout. 
-#
-##########################
+writeStatus "Ensure a breakout policy exists."
 
 
-curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra/funcprof.xml -d "${breakoutPolicy}" --header "content-type: appliation/xml, accept: application/xml" -v
+curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra/funcprof.xml -d "${breakoutPolicy}" --header "content-type: appliation/xml, accept: application/xml" 
 
-echo $breakoutPolicy
+
+
+writeStatus "Ensure Interface Profile is available"
+
+
+ #TODO Ensure Interface Profile is available (We will create a new one if it isn't there)
+interfaceProfileXML="<
+  infraAccPortP annotation='' 
+  descr='' 
+  dn='uni/infra/accportprof-${interfaceProfile}' 
+  name='${interfaceProfile}' 
+  nameAlias='' 
+  ownerKey='' 
+  ownerTag=''/>"
+curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra.xml -d "${interfaceProfileXML}" --header "content-type: appliation/xml, accept: application/xml"
+
+
+
+writeStatus "Start loop through each interface"
+
 
 for ((interface=1; interface <= lastInterface; interface++))
   do
-    echo $interface    
+    echo $interface
+    #TODO Create Access Port Selector for Each Breakout interface and associate with breakout policy
+    #TODO Create VPC Policy Group for each breakout interace
+    #TODO Create Interface selector for each breakout interface and associate with VPC Policy Group
   done
 
+#Removing the cookie used for access to the APIC
+rm -f ./cookie.txt
 
 
