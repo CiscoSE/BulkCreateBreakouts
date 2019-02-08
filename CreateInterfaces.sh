@@ -28,14 +28,6 @@ interfaceProfileDN="uni/infra/accportprof-${interfaceProfile}"
 breakoutPolicyDN="uni/infra/funcprof/brkoutportgrp-${breakoutPortGroup}"
 
 
-function createPortSelect () {
-  #Create Interface Access Port Selector
-  for i in {1..4}
-    do
-	echo $i      
-    done 
-}
-
 function getCookie () {
 	echo -n Enter the password for the APIC.
 	read -s password
@@ -122,17 +114,64 @@ function addPortToBreakout () {
 		</infraHPortS>
 	</infraAccPortP> 
 "
-  echo $portBreakoutXML
   curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra.xml -d "${portBreakoutXML}" --header "content-type: appliation/xml, accept: application/xml"
 
 }
 
 
+function createPortSelect () {
+  #
+  for i in {1..4}
+    do
+	writeStatus "Configuring interface ${interface}, port ${i}"
+	if [ ${#interface} -lt 2 ]; then
+		port="0${interface}"
+	else
+		port=$interface
+	fi
+	local name="${interfaceProfile}-P1.${port}.${i}"
+	#TODO where do we get teh AEP DN from?
+
+	intPolGrpXML="
+	<infraFuncP>
+	<infraAccBndlGrp 
+	annotation='' 
+	descr='' 
+	dn='uni/infra/funcprof/accbundle-${name}'
+	lagT='node' 
+	name='${name}' 
+	nameAlias='' 
+	ownerKey='' 
+	ownerTag=''>
+	<infraRsAttEntP 
+		annotation='' 
+		tDn='uni/infra/attentp-L2ColumbiaLab'/>
+	<infraRsCdpIfPol 
+		annotation='' 
+		tnCdpIfPolName='CDPEnabled'/>
+	<infraRsHIfPol 
+		annotation='' 
+		tnFabricHIfPolName='10G'/>
+	<infraRsLacpPol 
+		annotation='' 
+		tnLacpLagPolName='LACPActive'/>
+	<infraRsLldpIfPol 
+		annotation='' 
+		tnLldpIfPolName='LLDPEnabled'/>
+	</infraAccBndlGrp>
+	</infraFuncP>
+	"      
+	echo $intPolGrpXML
+        curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra.xml -d "${intPolGrpXML}" --header "content-type: appliation/xml, accept: application/xml"
+	writeStatus "Port Configured"
+    done 
+}
+
+#TODO Write Default LLDP, CDP, LACP and Link Level policies, or require them to be manually populated by user.  
 for ((interface=1; interface <= lastInterface; interface++))
   do
     addPortToBreakout $interface
-
-    #TODO Create Access Port Selector for Each Breakout interface and associate with breakout policy
+    createPortSelect
     #TODO Create VPC Policy Group for each breakout interace
     #TODO Create Interface selector for each breakout interface and associate with VPC Policy Group
   done
