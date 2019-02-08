@@ -134,7 +134,7 @@ function configureBreakoutInterface () {
 	<infraAccBndlGrp 
 	dn='${policyGroupDN}'
 	lagT='node' 
-	name='${name}'>
+	name='${name}-VPC'>
 	<infraRsAttEntP 
 		annotation='' 
 		tDn='${AepDN}'/>
