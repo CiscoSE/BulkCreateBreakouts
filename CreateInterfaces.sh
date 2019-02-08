@@ -52,8 +52,6 @@ function accessAPIC () {
   fi
 }
 
-
-
 function getCookie () {
 	#Remove a cookie if it exists
 	rm -f cookie.txt
@@ -129,7 +127,7 @@ function configureBreakoutInterface () {
 		port=$interface
 	fi
 	local name="${interfaceProfile}-P1.${port}.${i}"
-	local policyGroupDN="uni/infra/funcprof/accbundle-${name}"
+	local policyGroupDN="uni/infra/funcprof/accbundle-${name}-VPC"
 
 	intPolGrpXML="
 	<infraFuncP>
@@ -236,7 +234,6 @@ for ((interface=1; interface <= lastInterface; interface++))
   do
     addPortToBreakout $interface
     configureBreakoutInterface
-    #TODO Create Interface selector for each breakout interface and associate with VPC Policy Group
   done
 
 #Removing the cookie used for access to the APIC
