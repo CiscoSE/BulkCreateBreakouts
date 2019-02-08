@@ -23,62 +23,51 @@ interfaceProfile='201'
 startInterface=1
 lastInterface=14
 
+#Color Coding for screen output.
+green="\e[1;32m"
+red="\e[1;31m"
+yellow="\e[1;33m"
+normal="\e[1;0m"
+
 #These are needed later, and probably shouldn't be changed.
 interfaceProfileDN="uni/infra/accportprof-${interfaceProfile}"
 breakoutPolicyDN="uni/infra/funcprof/brkoutportgrp-${breakoutPortGroup}"
 
+function accessAPIC () {
+  XMLResult=''
+  errorReturn=''
+  XMLResult=$(curl -b cookie.txt -skX ${1} ${2} -d "${3}"  --header "content-type: appliation/xml, accept: application/xml" )
+  errorCode=$(echo $XMLResult | grep -oE "error code=\".*"  | sed "s/error code=\"//" | sed "s/\".*//")
+  errorText=$(echo $XMLResult | grep -oE "text=\".*"  | sed "s/text=\"//" | sed "s/\".*//")
+  if [ "$errorCode" != '' ]; then
+    writeStatus "APIC Call Failed.\nError Code: ${errorCode}\nXML Result: ${XMLResult}\nType: ${1}\nURL: ${2}\nXML: \n${3}" 'FAIL'
+  fi
+}
+
+
 
 function getCookie () {
+	#Remove a cookie if it exists
+	rm -f cookie.txt
 	echo -n Enter the password for the APIC.
 	read -s password
-	curl -kX POST https://10.82.6.165/api/aaaLogin.xml -d "<aaaUser name='${userName}' pwd='${password}'/>" -c cookie.txt	
+	cookieResult=$(curl -sk https://${apic}/api/aaaLogin.xml -d "<aaaUser name='${userName}' pwd='${password}'/>" -c cookie.txt)
 }
 
 function writeStatus (){	
-  echo ""
-  echo "##########################"
-  echo "# $1"
-  echo "##########################"
-
+  if [ "${2}" = "FAIL" ]; then 
+    printf "%5s[ ${red} FAIL ${normal} ] ${1}\n"
+    # Begin Exit Reroutine
+    if [ -f cookie.txt ]; then
+      printf "%5s[ ${green} INFO ${normal} ] Removing APIC cookie\n"
+      rm -f cookie.txt
+    fi
+    exit
+  fi
+  
+  printf "%5s[ ${green} INFO ${normal} ] ${1}\n"
 
 }
-
-getCookie
-
-
-breakoutPolicy="
-			<infraBrkoutPortGrp
-			annotation='' 
-			brkoutMap='${breakoutType}' 
-			descr='' 
-			dn='${breakoutPolicyDN}' 
-			name='${breakoutPortGroup}' 
-			nameAlias='' 
-			ownerKey='' 
-			ownerTag=''>
-			<infraRsMonBrkoutInfraPol 
-				annotation='' 
-				tnMonInfraPolName=''/>
-			</infraBrkoutPortGrp>
-"
-
-writeStatus "Ensure a breakout policy exists."
-
-curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra/funcprof.xml -d "${breakoutPolicy}" --header "content-type: appliation/xml, accept: application/xml" 
-
-writeStatus "Ensure Interface Profile is available"
-
-#interfaceProfileXML="<
-#  infraAccPortP annotation='' 
-#  descr='' 
-#  dn='${interfaceProfileDN}' 
-#  name='${interfaceProfile}' 
-#  nameAlias='' 
-#  ownerKey='' 
-#  ownerTag=''/>"
-#curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra.xml -d "${interfaceProfileXML}" --header "content-type: appliation/xml, accept: application/xml"
-
-writeStatus "Start loop through each interface"
 
 function addPortToBreakout () {
   writeStatus "Processing interface $1 for Breakout"
@@ -113,17 +102,18 @@ function addPortToBreakout () {
 				toPort='$1'/>
 		</infraHPortS>
 	</infraAccPortP> 
-"
-  curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra.xml -d "${portBreakoutXML}" --header "content-type: appliation/xml, accept: application/xml"
-
+  "
+  #local portBreakoutResult=$(curl -b cookie.txt -sk https://${apic}/api/node/mo/uni/infra.xml -d "${portBreakoutXML}" --header "content-type: appliation/xml, accept: application/xml")
+  accessAPIC 'POST' "https://${apic}/api/node/mo/uni/infra.xml" "${portBreakoutXML}"
+  writeStatus "%10s Breakout Created Successfully"
 }
 
-
-function createPortSelect () {
+function configureBreakoutInterface () {
   #
   for i in {1..4}
     do
-	writeStatus "Configuring interface ${interface}, port ${i}"
+	inPolGrpResult=''
+	writeStatus "%10s Configuring breakout interface ${interface}, port ${i}"
 	if [ ${#interface} -lt 2 ]; then
 		port="0${interface}"
 	else
@@ -161,17 +151,41 @@ function createPortSelect () {
 	</infraAccBndlGrp>
 	</infraFuncP>
 	"      
-	echo $intPolGrpXML
-        curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra.xml -d "${intPolGrpXML}" --header "content-type: appliation/xml, accept: application/xml"
-	writeStatus "Port Configured"
+	accessAPIC 'POST' " https://${apic}/api/node/mo/uni/infra.xml" "${intPolGrpXML}"
+	writeStatus "%15s interface Policy Group Configured"
+
     done 
 }
+
+getCookie
+
+breakoutPolicyXML="
+  <infraBrkoutPortGrp
+    annotation='' 
+    brkoutMap='${breakoutType}' 
+    descr='' 
+    dn='${breakoutPolicyDN}' 
+    name='${breakoutPortGroup}'
+    nameAlias='' 
+    ownerKey='' 
+    ownerTag=''>
+    <infraRsMonBrkoutInfraPol 
+      annotation='' 
+      tnMonInfraPolName=''/>
+  </infraBrkoutPortGrp>
+"
+
+writeStatus "\nEnsure a breakout policy exists.\n"
+accessAPIC 'POST' "https://${apic}/api/node/mo/uni/infra/funcprof.xml" "${breakoutPolicyXML}"
+#curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra/funcprof.xml -d "${breakoutPolicyXML}" --header "content-type: appliation/xml, accept: application/xml" -v
+
+writeStatus "Start loop through each interface"
 
 #TODO Write Default LLDP, CDP, LACP and Link Level policies, or require them to be manually populated by user.  
 for ((interface=1; interface <= lastInterface; interface++))
   do
     addPortToBreakout $interface
-    createPortSelect
+    configureBreakoutInterface
     #TODO Create VPC Policy Group for each breakout interace
     #TODO Create Interface selector for each breakout interface and associate with VPC Policy Group
   done
