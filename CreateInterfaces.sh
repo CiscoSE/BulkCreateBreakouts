@@ -20,8 +20,8 @@ breakoutPortGroup='4x10-Breakout'	# This gets used for a lot of created object n
 breakoutType='10g-4x'			# This is a constant that must not change It must be 10g-4x or 25g-4x
 #breakoutType='25g-4x'
 interfaceProfile='201'			# Policy Groups and Profiles are named with this value.
-startInterface=1			# First interface in a range to configure
-lastInterface=14			# Last interface in a range to configure
+startInterface=9			# First interface in a range to configure
+lastInterface=10 			# Last interface in a range to configure
 
 #Color Coding for screen output.
 green="\e[1;32m"
@@ -32,6 +32,15 @@ normal="\e[1;0m"
 #These are needed later, and probably shouldn't be changed.
 interfaceProfileDN="uni/infra/accportprof-${interfaceProfile}"
 breakoutPolicyDN="uni/infra/funcprof/brkoutportgrp-${breakoutPortGroup}"
+
+function exitRoutine () {
+  #Use this instead of the exit command to ensure we clean up the cookies.
+  if [ -f cookie.txt ]; then
+    rm -f cookie.txt
+    printf "%5s[ ${green} INFO ${normal} ] Removing APIC cookie\n"
+  fi
+  exit
+}
 
 function accessAPIC () {
   XMLResult=''
@@ -48,7 +57,7 @@ function accessAPIC () {
 	echo "URL: ${2}"
 	echo "XML Sent:\n${3}\n\n"
 	echo "XML Result:\n${XMLResult}\n\n"
-	exit
+	exitRoutine
   fi
 }
 
@@ -66,11 +75,7 @@ function writeStatus (){
   if [ "${2}" = "FAIL" ]; then 
     printf "%5s[ ${red} FAIL ${normal} ] ${1}\n"
     # Begin Exit Reroutine
-    if [ -f cookie.txt ]; then
-      printf "%5s[ ${green} INFO ${normal} ] Removing APIC cookie\n"
-      rm -f cookie.txt
-    fi
-    exit
+    exitRoutine
   fi
   
   printf "%5s[ ${green} INFO ${normal} ] ${1}\n"
@@ -172,7 +177,7 @@ function configureBreakoutInterface () {
 				tDn='${policyGroupDN}'/>
 	</infraHPortS>
 	"
-	accessAPIC 'POST' "https://${apic}/api/node/mo/uni/infra/accportprof-${interfaceProfile}.xml" "${intProfXML}" 
+	accessAPIC 'POST' "https://${apic}/api/node/mo/uni/infra/accportprof-${interfaceProfile}.xml" "${intProfXML}"
 	writeStatus "%15s Interface Port Selector Configured for VPC"
     done 
 }
@@ -230,13 +235,13 @@ accessAPIC 'POST' "https://${apic}/api/node/mo/uni/infra/funcprof.xml" "${breako
 
 writeStatus "Start loop through each interface"
 
-for ((interface=1; interface <= lastInterface; interface++))
+for ((interface=startInterface; interface <= lastInterface; interface++))
   do
     addPortToBreakout $interface
     configureBreakoutInterface
   done
 
 #Removing the cookie used for access to the APIC
-rm -f ./cookie.txt
+exitRoutine
 
 
