@@ -23,6 +23,11 @@ interfaceProfile='201'
 startInterface=1
 lastInterface=14
 
+#These are needed later, and probably shouldn't be changed.
+interfaceProfileDN="uni/infra/accportprof-${interfaceProfile}"
+breakoutPolicyDN="uni/infra/funcprof/brkoutportgrp-${breakoutPortGroup}"
+
+
 function createPortSelect () {
   #Create Interface Access Port Selector
   for i in {1..4}
@@ -40,9 +45,7 @@ function getCookie () {
 function writeStatus (){	
   echo ""
   echo "##########################"
-  echo "#"
   echo "# $1"
-  echo "#"
   echo "##########################"
 
 
@@ -56,7 +59,7 @@ breakoutPolicy="
 			annotation='' 
 			brkoutMap='${breakoutType}' 
 			descr='' 
-			dn='uni/infra/funcprof/brkoutportgrp-${breakoutPortGroup}' 
+			dn='${breakoutPolicyDN}' 
 			name='${breakoutPortGroup}' 
 			nameAlias='' 
 			ownerKey='' 
@@ -69,33 +72,66 @@ breakoutPolicy="
 
 writeStatus "Ensure a breakout policy exists."
 
-
 curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra/funcprof.xml -d "${breakoutPolicy}" --header "content-type: appliation/xml, accept: application/xml" 
-
-
 
 writeStatus "Ensure Interface Profile is available"
 
-
- #TODO Ensure Interface Profile is available (We will create a new one if it isn't there)
-interfaceProfileXML="<
-  infraAccPortP annotation='' 
-  descr='' 
-  dn='uni/infra/accportprof-${interfaceProfile}' 
-  name='${interfaceProfile}' 
-  nameAlias='' 
-  ownerKey='' 
-  ownerTag=''/>"
-curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra.xml -d "${interfaceProfileXML}" --header "content-type: appliation/xml, accept: application/xml"
-
-
+#interfaceProfileXML="<
+#  infraAccPortP annotation='' 
+#  descr='' 
+#  dn='${interfaceProfileDN}' 
+#  name='${interfaceProfile}' 
+#  nameAlias='' 
+#  ownerKey='' 
+#  ownerTag=''/>"
+#curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra.xml -d "${interfaceProfileXML}" --header "content-type: appliation/xml, accept: application/xml"
 
 writeStatus "Start loop through each interface"
+
+function addPortToBreakout () {
+  writeStatus "Processing interface $1 for Breakout"
+  portBreakoutXML="
+  <infraAccPortP 
+		annotation='' 
+		descr='' 
+		dn='${interfaceProfileDN}' 
+		name='${interfaceProfile}' 
+		nameAlias='' 
+		ownerKey='' 
+		ownerTag=''>
+		<infraHPortS 
+			annotation='' 
+			descr='' 
+			name='${interfaceProfile}-Breakout' 
+			nameAlias='' 
+			ownerKey='' 
+			ownerTag='' 
+			type='range'>
+			<infraRsAccBaseGrp 
+				annotation='' 
+				tDn='${breakoutPolicyDN}'/>
+			<infraPortBlk 
+				annotation='' 
+				descr='' 
+				fromCard='1' 
+				fromPort='$1'
+				name='$interfaceProfile-S1-P$1' 
+				nameAlias='' 
+				toCard='1' 
+				toPort='$1'/>
+		</infraHPortS>
+	</infraAccPortP> 
+"
+  echo $portBreakoutXML
+  curl -b cookie.txt -kX POST https://${apic}/api/node/mo/uni/infra.xml -d "${portBreakoutXML}" --header "content-type: appliation/xml, accept: application/xml"
+
+}
 
 
 for ((interface=1; interface <= lastInterface; interface++))
   do
-    echo $interface
+    addPortToBreakout $interface
+
     #TODO Create Access Port Selector for Each Breakout interface and associate with breakout policy
     #TODO Create VPC Policy Group for each breakout interace
     #TODO Create Interface selector for each breakout interface and associate with VPC Policy Group
