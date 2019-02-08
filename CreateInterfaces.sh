@@ -13,6 +13,7 @@
 # IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied.
 
+#Items you should probably change.
 apic='10.82.6.165'
 userName='admin'
 AepDN='uni/infra/attentp-L2ColumbiaLab'	# This must be the DN of an existing AEP. I don't check to see if it is there.
@@ -20,8 +21,14 @@ breakoutPortGroup='4x10-Breakout'	# This gets used for a lot of created object n
 breakoutType='10g-4x'			# This is a constant that must not change It must be 10g-4x or 25g-4x
 #breakoutType='25g-4x'
 interfaceProfile='201'			# Policy Groups and Profiles are named with this value.
-startInterface=9			# First interface in a range to configure
-lastInterface=10 			# Last interface in a range to configure
+startInterface=1			# First interface in a range to configure
+lastInterface=14 			# Last interface in a range to configure
+
+#Debug Variables
+writeLogFile="./$(date +%Y%m%d-%H%M%S)-xmlLogFile.log"
+writeLog='enabled'
+#writeLog='disabled'
+
 
 #Color Coding for screen output.
 green="\e[1;32m"
@@ -53,12 +60,19 @@ function accessAPIC () {
   fi
   #used only for debuging
   if [ "${4}" = 'TRUE' ]; then
-	echo "Type: ${1}"
-	echo "URL: ${2}"
-	echo "XML Sent:\n${3}\n\n"
-	echo "XML Result:\n${XMLResult}\n\n"
+	printf "Type: ${1}"
+	printf "URL: ${2}"
+	printf "XML Sent:\n${3}\n\n"
+	printf "XML Result:\n${XMLResult}\n\n"
 	exitRoutine
   fi
+  if [ "${writeLog}" = 'enabled' ]; then
+    	printf "Type: ${1}" >> $writeLogFile
+	printf "URL: ${2}" >> $writeLogFile
+	printf "XML Sent:\n${3}\n\n" >> $writeLogFile
+	printf "XML Result:\n${XMLResult}\n\n" >> $writeLogFile
+  fi
+
 }
 
 function getCookie () {
@@ -80,6 +94,9 @@ function writeStatus (){
   
   printf "%5s[ ${green} INFO ${normal} ] ${1}\n"
 
+  if [ "${writeLog}" = 'enabled' ]; then
+    printf "%5s[ ${green} INFO ${normal} ] ${1}\n" >> $writeLogFile
+  fi
 }
 
 function addPortToBreakout () {
@@ -209,6 +226,12 @@ function createDefaultPolicies () {
   accessAPIC 'POST' "https://${apic}/api/node/mo.xml" "${defaultPolicyXML}"
 }
 
+#Log File Start
+if [ "${writeLog}" = 'enabled' ]; then
+  printf 'Starting Log file' > $writeLogFile
+fi
+
+#Get cookie
 getCookie
 
 createDefaultPolicies
