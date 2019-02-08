@@ -14,19 +14,19 @@
 # or implied.
 
 #Items you should probably change.
-apic='10.82.6.165'
-userName='admin'
+apic='10.82.6.165'			# Can be a DNS name or IP depending on your environment
+userName='admin'			# User Name to Logon to the APIC
 AepDN='uni/infra/attentp-L2ColumbiaLab'	# This must be the DN of an existing AEP. I don't check to see if it is there.
 breakoutPortGroup='4x10-Breakout'	# This gets used for a lot of created object names
 breakoutType='10g-4x'			# This is a constant that must not change It must be 10g-4x or 25g-4x
 #breakoutType='25g-4x'
 interfaceProfile='201'			# Policy Groups and Profiles are named with this value.
 startInterface=1			# First interface in a range to configure
-lastInterface=14 			# Last interface in a range to configure
+lastInterface=1 			# Last interface in a range to configure
 
 #Debug Variables
-writeLogFile="./$(date +%Y%m%d-%H%M%S)-xmlLogFile.log"
-writeLog='enabled'
+writeLogFile="./$(date +%Y%m%d-%H%M%S)-xmlLogFile.log"	#Time stamped file name.
+writeLog='enabled'					#When enabled, XML is logged to the file system along with any status messages. 
 #writeLog='disabled'
 
 
@@ -68,7 +68,7 @@ function accessAPIC () {
   fi
   if [ "${writeLog}" = 'enabled' ]; then
     	printf "Type: ${1}" >> $writeLogFile
-	printf "URL: ${2}" >> $writeLogFile
+	printf "URL: ${2}" >> $writeLogFile		
 	printf "XML Sent:\n${3}\n\n" >> $writeLogFile
 	printf "XML Result:\n${XMLResult}\n\n" >> $writeLogFile
   fi
@@ -207,6 +207,7 @@ function createDefaultPolicies () {
 		<fabricHIfPol autoNeg='on' descr='' dn='uni/infra/hintfpol-10G'  fecMode='inherit' linkDebounce='100' name='10G'  nameAlias='' ownerKey='' ownerTag='' speed='10G'/>
 		<fabricHIfPol autoNeg='on' descr='' dn='uni/infra/hintfpol-100G' fecMode='inherit' linkDebounce='100' name='100G' nameAlias='' ownerKey='' ownerTag='' speed='100G'/>	
 		<fabricHIfPol autoNeg='on' descr='' dn='uni/infra/hintfpol-40G'  fecMode='inherit' linkDebounce='100' name='40G'  nameAlias='' ownerKey='' ownerTag='' speed='40G'/>	
+		<fabricHIfPol autoNeg='on' descr='' dn='uni/infra/hintfpol-25G'  fecMode='inherit' linkDebounce='100' name='25G'  nameAlias='' ownerKey='' ownerTag='' speed='25G'/>	
 		<cdpIfPol adminSt='enabled'  descr='' dn='uni/infra/cdpIfP-CDP-Enabled'  name='CDP-Enabled'  nameAlias='' ownerKey='' ownerTag=''/>
 		<cdpIfPol adminSt='disabled' descr='' dn='uni/infra/cdpIfP-CDP-Disabled' name='CDP-Disabled' nameAlias='' ownerKey='' ownerTag=''/>
 		<lldpIfPol adminRxSt='disabled' adminTxSt='disabled' descr='' dn='uni/infra/lldpIfP-LLDP-Disabled' name='LLDP-Disabled' nameAlias='' ownerKey='' ownerTag=''/>	
