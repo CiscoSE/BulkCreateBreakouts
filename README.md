@@ -1,5 +1,5 @@
 CAUTION!
-Scripts in this area were written to specific customer needs and are potentially destructive if not properly understood. These scripts do not run without customization and will make substantial changes into your environment. It is critical that you take a backup of your ACI environment prior to running this script. For most environments, the script is a template for how to work with the Cisco ACI API from bash rather than a tool for actual deployment. 
+Scripts in this area were written to specific customer needs and are potentially destructive if not properly understood. These scripts will not be effective without customization but  make substantial changes into your environment. It is critical that you take a backup of your ACI environment prior to running this script. For most environments, the script is a template for how to work with the Cisco ACI API from bash rather than a tool for actual deployment. 
 
 Intended Purpose (Create Interfaces)
 This script is for bulk loading interface configurations. We make a lot of assumptions in this file about what is wanted. Specially:
