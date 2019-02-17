@@ -1,33 +1,60 @@
-#Copyright (c) 2019 Cisco and/or its affiliates.
+# Copyright (c) 2019 Cisco and/or its affiliates.
 
-#This software is licensed to you under the terms of the Cisco Sample
-#Code License, Version 1.0 (the "License"). You may obtain a copy of the
-#License at
+# This software is licensed to you under the terms of the Cisco Sample
+# Code License, Version 1.0 (the "License"). You may obtain a copy of the
+# License at
 
 #               https://developer.cisco.com/docs/licenses
 
 # All use of the material herein must be in accordance with the terms of
-#the License. All rights not expressly granted by the License are
+# the License. All rights not expressly granted by the License are
 # reserved. Unless required by applicable law or agreed to separately in
 # writing, software distributed under the License is distributed on an "AS
 # IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied.
 
-#Items you should probably change.
-apic='10.82.6.165'			# Can be a DNS name or IP depending on your environment
-userName='admin'			# User Name to Logon to the APIC
-AepDN='uni/infra/attentp-L2ColumbiaLab'	# This must be the DN of an existing AEP. I don't check to see if it is there.
+# Items you should probably change - Configurable by Aurgument 
+apicDefault='';             apic=''							# Can be a DNS name or IP depending on your environment
+userNameDefault='';         userName=''					# User Name to Logon to the APIC
+aepNameDefault=''           aepName=''	        # AEP Name for configuration
+startInterfaceDefault='';   startInterface=''	  # First interface in a range to configure
+lastInterfaceDefault='';    lastInterface=''    # Last interface in a range to configure
+interfaceProfileDefault=''; interfaceProfile=''	# Policy Groups and Profiles are named with this value.
+
+# Constants used through out the script
 breakoutPortGroup='4x10-Breakout'	# This gets used for a lot of created object names
 breakoutType='10g-4x'			# This is a constant that must not change It must be 10g-4x or 25g-4x
-#breakoutType='25g-4x'
-interfaceProfile='201'			# Policy Groups and Profiles are named with this value.
-startInterface=1			# First interface in a range to configure
-lastInterface=1 			# Last interface in a range to configure
+aepDnPrefix='uni/infra/attentp-'; aepDn=''
 
 #Debug Variables
 writeLogFile="./$(date +%Y%m%d-%H%M%S)-xmlLogFile.log"	#Time stamped file name.
 writeLog='enabled'					#When enabled, XML is logged to the file system along with any status messages. 
 #writeLog='disabled'
+
+
+argumentExit(){
+  # Required for help processing
+  printf '%s\n' "$1" >&2
+	exit 1
+}
+
+#Help File
+showHelp() {
+  cat << EOF
+  Usage: ${0##*/} [--apic [IP]] [--user [User]] [--aepName [DN]] --interfaceName [Name] [--start [Num]] [--last [Num]]...
+
+  Where:
+
+      -h               Display this help and exit
+      --apic           IP or fqdn of APIC to be changed
+      --user           Username to access APIC
+      --aepName        DN of Attachable Entity Profile
+      --start          Port number of first interface in range to configure
+      --last           Port number of last interface in range to configure
+      --interfaceName  Prefix used to name all interfaces.
+      -v               verbose mode. 
+EOF
+}
 
 
 #Color Coding for screen output.
@@ -36,9 +63,6 @@ red="\e[1;31m"
 yellow="\e[1;33m"
 normal="\e[1;0m"
 
-#These are needed later, and probably shouldn't be changed.
-interfaceProfileDN="uni/infra/accportprof-${interfaceProfile}"
-breakoutPolicyDN="uni/infra/funcprof/brkoutportgrp-${breakoutPortGroup}"
 
 function exitRoutine () {
   #Use this instead of the exit command to ensure we clean up the cookies.
@@ -126,7 +150,7 @@ function addPortToBreakout () {
 				descr='' 
 				fromCard='1' 
 				fromPort='${1}'
-				name='${interfaceProfile}-S1-P${1}' 
+				name='${interfaceProfle}-S1-P${1}' 
 				nameAlias='' 
 				toCard='1' 
 				toPort='${1}'/>
@@ -159,7 +183,7 @@ function configureBreakoutInterface () {
 	name='${name}-VPC'>
 	<infraRsAttEntP 
 		annotation='' 
-		tDn='${AepDN}'/>
+		tDn='${aepDn}'/>
 	<infraRsCdpIfPol 
 		annotation='' 
 		tnCdpIfPolName='CDP-Enabled'/>
@@ -232,7 +256,107 @@ if [ "${writeLog}" = 'enabled' ]; then
   printf 'Starting Log file' > $writeLogFile
 fi
 
+while :; do
+  case $1 in 
+    -h|-\?|--help)
+		  showHelp			# Display help in formation in showHelp
+			exit
+		  ;;
+		--apic)
+		  if [ "$2" ]; then
+			  apic=$2
+				shift
+			fi
+		  ;;
+		--user)
+		  if [ "$2" ]; then
+			  userName=$2
+				shift
+			fi
+			;;
+		--aep[nN]ame)
+		  if [ $2 ]; then
+			  aepDn="${aepDnPrefix}${2}"
+				shift
+			fi
+			;;
+		--interface[Nn]ame)
+		  if [ $2 ]; then
+			  interfaceProfile=$2
+				shift
+			fi
+			;;
+		--start)
+		  if [ $2 ]; then
+			  startInterface=$2
+				shift
+			fi
+			;;
+		--last)
+		  if [ $2 ]; then
+			  lastInterface=$2
+				shift
+			fi
+		  ;;
+		-v|--verbose)
+		  verbose=$((verbose + 1))
+		  ;;
+		*)
+		  break
+  esac
+	shift
+done
+
+#Set defaults if the value isnt set by argument. 
+if [[ ( -z ${apic} && -n ${apicDefault} ) ]]; then
+  apic=$apicDefault
+elif [[ -z ${apic} ]]; then
+  writeStatus "Required value (APIC) not present" 'FAIL'
+fi
+
+if [[ ( -z ${userName} && -n ${userNameDefault} ) ]]; then
+  userName=$userNameDefault
+elif [[ -z ${userName} ]]; then
+  writeStatus "Required value (user) not present" 'FAIL'
+fi
+
+if [[ ( -z ${aepDn} && -n ${aepNameDefault} ) ]]; then
+  aepDn="${aepDnPrefix}${aepNameDefault}"
+elif [[ -z ${aepDn} ]]; then
+  writeStatus "Required value (aepName) not present" 'FAIL'
+fi
+
+if [[ ( -z ${interfaceProfile} && -n ${interfaceProfileDefault} ) ]]; then
+  interfaceProfile=$interfaceProfileDefault
+elif [[ -z ${interfaceProfile} ]]; then
+  writeStatus "Required value (interfaceProfile) not present" 'FAIL'
+fi
+
+if [[ ( -z ${startInterface} && -n ${startInterfaceDefault} ) ]]; then
+  startInterface=$startInterfaceDefault
+elif [[ -z ${startInterface} ]]; then
+  writeStatus "Required value (start) not present" 'FAIL'
+fi
+
+if [[ ( -z ${lastInterface} && -n ${lastInterfaceDefault} ) ]]; then
+  lastInterface=$lastInterfaceDefault
+elif [[ -z ${lastInterface} ]]; then
+  writeStatus "Required value (last) not present" 'FAIL'
+fi
+
+writeStatus "APIC Value: \t\t${apic}"
+writeStatus "userName Value: \t${userName}"
+writeStatus "aepDn Value: \t\t${aepDn}"
+writeStatus "start Value: \t\t${startInterface}"
+writeStatus "last Value: \t\t${lastInterface}"
+writeStatus "interfaceProfile Value\t${interfaceProfile}"
+writeStatus "verbose Value:\t\t${verbose}"
+
+#These are needed later, and probably shouldn't be changed.
+interfaceProfileDN="uni/infra/accportprof-${interfaceProfile}"
+breakoutPolicyDN="uni/infra/funcprof/brkoutportgrp-${breakoutPortGroup}"
 #Get cookie
+
 getCookie
 
 createDefaultPolicies
