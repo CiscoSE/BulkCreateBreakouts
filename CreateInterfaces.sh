@@ -13,7 +13,7 @@
 # IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied.
 
-# Items you should probably change - Configurable by Aurgument 
+# Items you should probably change - Configurable by Argument 
 apicDefault='';             apic=''							# Can be a DNS name or IP depending on your environment
 userNameDefault='';         userName=''					# User Name to Logon to the APIC
 aepNameDefault=''           aepName=''	        # AEP Name for configuration
@@ -236,7 +236,7 @@ function createDefaultPolicies () {
 		<cdpIfPol adminSt='disabled' descr='' dn='uni/infra/cdpIfP-CDP-Disabled' name='CDP-Disabled' nameAlias='' ownerKey='' ownerTag=''/>
 		<lldpIfPol adminRxSt='disabled' adminTxSt='disabled' descr='' dn='uni/infra/lldpIfP-LLDP-Disabled' name='LLDP-Disabled' nameAlias='' ownerKey='' ownerTag=''/>	
 		<lldpIfPol adminRxSt='enabled'  adminTxSt='enabled'  descr='' dn='uni/infra/lldpIfP-LLDP-Enabled'  name='LLDP-Enabled'  nameAlias='' ownerKey='' ownerTag=''/>
-		<lacpLagPol ctrl='fast-sel-hot-stdby,graceful-conv,susp-individual' dn='uni/infra/lacplagp-LACP-Active' maxLinks='16' minLinks='1' mode='active' name='LACP-Active' nameAlias='' ownerKey='' ownerTag=''/>
+		<lacpLagPol ctrl='fast-sel-hot-stdby,graceful-conv' dn='uni/infra/lacplagp-LACP-Active' maxLinks='16' minLinks='1' mode='active' name='LACP-Active' nameAlias='' ownerKey='' ownerTag=''/>
 		<mcpInstPol adminSt='enabled' dn='uni/infra/mcpInstP-default' initDelayTime='180' loopDetectMult='3' loopProtectAct='port-disable' name='default' ownerKey='DefaultOwnerKey' txFreq='2'/>
 		<edrErrDisRecoverPol dn='uni/infra/edrErrDisRecoverPol-default' errDisRecovIntvl='300' name='default'>
 			<edrEventP descr='' event='event-mcp-loop'  name='' nameAlias='' recover='yes'/>
