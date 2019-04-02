@@ -237,7 +237,6 @@ function createDefaultPolicies () {
 		<lldpIfPol adminRxSt='disabled' adminTxSt='disabled' descr='' dn='uni/infra/lldpIfP-LLDP-Disabled' name='LLDP-Disabled' nameAlias='' ownerKey='' ownerTag=''/>	
 		<lldpIfPol adminRxSt='enabled'  adminTxSt='enabled'  descr='' dn='uni/infra/lldpIfP-LLDP-Enabled'  name='LLDP-Enabled'  nameAlias='' ownerKey='' ownerTag=''/>
 		<lacpLagPol ctrl='fast-sel-hot-stdby,graceful-conv' dn='uni/infra/lacplagp-LACP-Active' maxLinks='16' minLinks='1' mode='active' name='LACP-Active' nameAlias='' ownerKey='' ownerTag=''/>
-		<mcpInstPol adminSt='enabled' dn='uni/infra/mcpInstP-default' initDelayTime='180' loopDetectMult='3' loopProtectAct='port-disable' name='default' ownerKey='DefaultOwnerKey' txFreq='2'/>
 		<edrErrDisRecoverPol dn='uni/infra/edrErrDisRecoverPol-default' errDisRecovIntvl='300' name='default'>
 			<edrEventP descr='' event='event-mcp-loop'  name='' nameAlias='' recover='yes'/>
 			<edrEventP descr='' event='event-bpduguard' name='' nameAlias='' recover='yes'/>
